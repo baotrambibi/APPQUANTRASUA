@@ -147,33 +147,39 @@ with st.sidebar:
 # ---------------------------------------------------------
 if nav_choice == "🛒 Order Bán Hàng":
 
-    # HEADER BANNER SANG TRỌNG & XỊN XÒ
+    # HEADER BANNER SANG TRỌNG VỚI FONT CHỮ CAO CẤP & SLOGAN MỚI
     header_html = """
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Montserrat:wght@400;500&display=swap');
+    
     <div style="
-        background: linear-gradient(135deg, #3E2723 0%, #4E342E 50%, #261C14 100%);
-        padding: 24px 30px;
-        border-radius: 16px;
+        background: linear-gradient(135deg, #2B1810 0%, #3D2317 50%, #1F110B 100%);
+        padding: 28px 30px;
+        border-radius: 18px;
         text-align: center;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
         margin-bottom: 25px;
-        border: 1px solid #6D4C41;
+        border: 1px solid #795548;
     ">
         <h1 style="
-            color: #F5D061;
-            font-family: 'Trebuchet MS', 'Arial', sans-serif;
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-            margin: 0 0 6px 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-family: 'Playfair Display', 'Georgia', serif;
+            font-size: 2.6rem;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            margin: 0 0 8px 0;
+            background: linear-gradient(45deg, #FFE082, #FFB300, #FFF8E1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 4px 10px rgba(0,0,0,0.5);
         ">☕ BI COFFEE & TEA 🌿</h1>
         <p style="
-            color: #E0D0C0;
-            font-size: 1.05rem;
+            font-family: 'Montserrat', 'Arial', sans-serif;
+            color: #E0C0A8;
+            font-size: 1.1rem;
             margin: 0;
             font-style: italic;
-            letter-spacing: 0.5px;
-        ">"Hương vị đậm đà • Đánh thức năng lượng mỗi ngày"</p>
+            font-weight: 500;
+            letter-spacing: 1px;
+        ">"Thưởng thức từng ngụm say mê • Gói trọn vị yêu thương"</p>
     </div>
     """
     st.markdown(header_html, unsafe_allow_html=True)
@@ -257,4 +263,143 @@ if nav_choice == "🛒 Order Bán Hàng":
             }
             st.session_state.cart.append(item_data)
             st.session_state.invoice_paid = False
-            st.toast
+            st.toast(f"Đã thêm **{quantity}x {selected_item_name}**!", icon="✅")
+
+    # ==================== CỘT PHẢI: GIỎ HÀNG & THANH TOÁN ====================
+    with col_right:
+        st.subheader("🛒 Giỏ hàng của bạn")
+
+        if not st.session_state.cart:
+            st.warning("Giỏ hàng đang trống. Vui lòng chọn món ở cột bên trái.")
+        else:
+            df_cart = pd.DataFrame(st.session_state.cart)
+            st.dataframe(
+                df_cart[["Tên món", "Size", "Topping", "Số lượng", "Đơn giá", "Thành tiền"]],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            if st.button("🗑️ Xóa tất cả món"):
+                st.session_state.cart = []
+                st.session_state.invoice_paid = False
+                st.rerun()
+
+            st.divider()
+
+            auto_discount = 0
+            if "VIP" in cust_tier:
+                auto_discount = 10
+            elif "HSSV" in cust_tier:
+                auto_discount = 5
+
+            total_price = df_cart["Thành tiền"].sum()
+            
+            c_dc, c_py = st.columns(2)
+            with c_dc:
+                discount = st.number_input("Giảm giá (%):", min_value=0, max_value=100, value=auto_discount, step=5)
+            with c_py:
+                pay_method = st.selectbox("Hình thức:", ["Tiền mặt 💵", "Chuyển khoản QR 💳", "Ví MoMo 📱"])
+
+            final_price = int(total_price * (1 - discount / 100))
+
+            st.write(f"### Tổng tiền món: **{total_price:,} VNĐ**")
+            st.write(f"## TỔNG THANH TOÁN: :red[{final_price:,} VNĐ]")
+
+            if st.button("💳 XÁC NHẬN THANH TOÁN", type="primary", use_container_width=True):
+                st.session_state.invoice_paid = True
+                order_info = {
+                    "time": datetime.now().strftime("%H:%M:%S - %d/%m/%Y"),
+                    "customer": customer_name if customer_name else "Khách vãng lai",
+                    "type": service_type,
+                    "items_count": len(st.session_state.cart),
+                    "total": final_price,
+                    "details": st.session_state.cart
+                }
+                st.session_state.order_history.append(order_info)
+                st.balloons()
+
+    # ==================== HÓA ĐƠN & NÚT IN/TẢI FILE .TXT ====================
+    if st.session_state.get("invoice_paid") and st.session_state.cart:
+        st.divider()
+        st.success("🎉 Thanh toán thành công! Dưới đây là chi tiết hóa đơn:")
+
+        c_inv, c_qr = st.columns([1.2, 0.8])
+        
+        with c_inv:
+            invoice_box = st.container(border=True)
+            with invoice_box:
+                st.markdown("<h2 style='text-align: center; color: #4A2E19;'>☕ HÓA ĐƠN BÁN HÀNG - BI COFFEE & TEA</h2>", unsafe_allow_html=True)
+                st.write(f"**Thời gian:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+                st.write(f"**Khách hàng:** {customer_name if customer_name else 'Khách vãng lai'} ({service_type})")
+                
+                st.table(pd.DataFrame(st.session_state.cart)[["Tên món", "Size", "Đường", "Đá", "Topping", "Số lượng", "Thành tiền"]])
+                
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.write(f"**Tổng tiền món:** {total_price:,} VNĐ")
+                    st.write(f"**Giảm giá:** {discount}%")
+                with c2:
+                    st.markdown(f"### TỔNG CỦA BẠN: <span style='color:red'>{final_price:,} VNĐ</span>", unsafe_allow_html=True)
+
+        with c_qr:
+            if "Chuyển khoản" in pay_method or "MoMo" in pay_method:
+                st.markdown("#### 📱 Mã QR Thanh Toán")
+                qr_url = f"https://img.vietqr.io/image/MB-0123456789-compact2.png?amount={final_price}&addInfo=BiCoffee%20Thanh%20Toan"
+                st.image(qr_url, caption="Mở App Ngân hàng / MoMo để quét", use_container_width=True)
+
+        # Chuẩn bị file tải hóa đơn .TXT
+        txt_data = create_txt_invoice(customer_name, service_type, st.session_state.cart, total_price, discount, final_price)
+        
+        col_dl1, col_dl2 = st.columns(2)
+        with col_dl1:
+            st.download_button(
+                label="📥 Tải hóa đơn (.TXT)",
+                data=txt_data,
+                file_name=f"HoaDon_BiCoffee_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                use_container_width=True,
+                type="primary"
+            )
+        with col_dl2:
+            if st.button("🔄 Tạo đơn hàng mới", use_container_width=True):
+                st.session_state.cart = []
+                st.session_state.invoice_paid = False
+                st.rerun()
+
+# ---------------------------------------------------------
+# 5. CHỨC NĂNG 2: MÀN HÌNH PHA CHẾ BARISTA
+# ---------------------------------------------------------
+elif nav_choice == "👨‍🍳 Màn Hình Pha Chế":
+    st.title("👨‍🍳 Màn Hình Pha Chế (Barista)")
+    st.divider()
+
+    if not st.session_state.order_history:
+        st.info("Chưa có đơn hàng nào cần làm.")
+    else:
+        for idx, order in enumerate(reversed(st.session_state.order_history), 1):
+            with st.expander(f"📦 Đơn #{len(st.session_state.order_history)-idx+1} - {order['customer']} ({order['type']}) - Lúc {order['time']}", expanded=True):
+                for item in order["details"]:
+                    st.write(f"- **{item['Số lượng']}x {item['Tên món']}** (Size: {item['Size']} | Đường: {item['Đường']} | Đá: {item['Đá']} | Topping: {item['Topping']})")
+                if st.button(f"✅ Hoàn thành đơn #{len(st.session_state.order_history)-idx+1}", key=f"kds_{idx}"):
+                    st.toast("Đã chuyển đơn xong!", icon="☕")
+
+# ---------------------------------------------------------
+# 6. CHỨC NĂNG 3: BÁO CÁO DOANH THU
+# ---------------------------------------------------------
+elif nav_choice == "📊 Doanh Thu & Lịch Sử":
+    st.title("📊 Doanh Thu & Lịch Sử Đơn Hàng")
+    st.divider()
+
+    if not st.session_state.order_history:
+        st.warning("Chưa có lịch sử bán hàng.")
+    else:
+        total_rev = sum(o["total"] for o in st.session_state.order_history)
+        total_orders = len(st.session_state.order_history)
+
+        m1, m2 = st.columns(2)
+        m1.metric("Tổng Doanh Thu", f"{total_rev:,} VNĐ")
+        m2.metric("Tổng Số Đơn Hàng", f"{total_orders} Đơn")
+
+        st.divider()
+        df_history = pd.DataFrame(st.session_state.order_history)
+        st.dataframe(df_history[["time", "customer", "type", "items_count", "total"]], use_container_width=True)
