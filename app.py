@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 
 # ---------------------------------------------------------
-# 1. CẤU HÌNH TRANG & CSS TÙY CHỈNH HEADER BANNER XỊN XÒ
+# 1. CẤU HÌNH TRANG
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Bi Coffee & Tea - POS System",
@@ -146,8 +146,11 @@ with st.sidebar:
 # ---------------------------------------------------------
 if nav_choice == "🛒 Order Bán Hàng":
 
+    # ĐÃ BỌC STYLE CHUẨN XÁC, KHÔNG BỊ LỘ TEXT RA NGOÀI
     header_html = """
+    <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Montserrat:wght@400;500&display=swap');
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <div style="
