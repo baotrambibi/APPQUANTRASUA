@@ -3,47 +3,16 @@ import pandas as pd
 from datetime import datetime
 
 # ---------------------------------------------------------
-# 1. CẤU HÌNH TRANG & CSS TÙY CHỈNH
+# 1. CẤU HÌNH TRANG
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Bi Coffee & Tea - POS",
+    page_title="Bi Coffee & Tea - POS System",
     page_icon="☕",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Custom CSS
-st.markdown("""
-<style>
-    .main {
-        background-color: #faf9f6;
-    }
-    .header-banner {
-        background: linear-gradient(135deg, #4A2E19 0%, #2E1C0C 100%);
-        color: #F4E8C1;
-        padding: 1.8rem;
-        border-radius: 16px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        margin-bottom: 1.5rem;
-    }
-    .header-banner h1 {
-        color: #E2B963 !important;
-        font-family: 'Arial', sans-serif;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    .invoice-box {
-        background-color: #ffffff;
-        border: 2px dashed #4A2E19;
-        padding: 20px;
-        border-radius: 12px;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # ---------------------------------------------------------
-# 2. DỮ LIỆU SẢN PHẨM & DỊCH VỤ
+# 2. MENU SẢN PHẨM & DỊCH VỤ
 # ---------------------------------------------------------
 MENU_ITEMS = {
     "☕ CÀ PHÊ": {
@@ -115,7 +84,7 @@ TOPPING_OPTIONS = {
 SUGAR_LEVELS = ["100% (Bình thường)", "70%", "50%", "30%", "0% (Không đường)"]
 ICE_LEVELS = ["100% (Bình thường)", "70%", "50%", "30%", "0% (Không đá)"]
 
-# Khởi tạo session state
+# Khởi tạo lưu trữ trạng thái đơn hàng
 if "cart" not in st.session_state:
     st.session_state.cart = []
 if "invoice_paid" not in st.session_state:
@@ -124,29 +93,78 @@ if "order_history" not in st.session_state:
     st.session_state.order_history = []
 
 # ---------------------------------------------------------
-# 3. SIDEBAR ĐIỀU HƯỚNG
+# 3. THANH MENU BÊN TRÁI (SIDEBAR)
 # ---------------------------------------------------------
 with st.sidebar:
-    st.image("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400", use_container_width=True)
-    st.markdown("### ☕ **BI COFFEE & TEA**")
-    st.caption("Hệ thống quản lý bán hàng POS")
+    st.title("☕ BI COFFEE & TEA")
+    st.caption("Hệ thống POS Quản Lý Bán Hàng")
     st.divider()
 
     nav_choice = st.radio(
-        "📌 Chức năng hệ thống:",
+        "Chức năng:",
         [
-            "🛒 Order Bán Hàng & POS",
-            "👨‍🍳 Màn Hình Pha Chế (KDS)",
+            "🛒 Order Bán Hàng",
+            "👨‍🍳 Màn Hình Pha Chế",
             "📊 Doanh Thu & Lịch Sử"
         ]
     )
 
 # ---------------------------------------------------------
-# 4. CHỨC NĂNG 1: ORDER BÁN HÀNG & POS
+# 4. CHỨC NĂNG 1: ORDER BÁN HÀNG
 # ---------------------------------------------------------
-if nav_choice == "🛒 Order Bán Hàng & POS":
+if nav_choice == "🛒 Order Bán Hàng":
 
-    st.markdown("""
-        <div class="header-banner">
-            <h1>☕ BI COFFEE & TEA 🌿</h1>
-            <p>"Thưởng thức
+    st.title("☕ BI COFFEE & TEA 🌿")
+    st.caption("Thưởng thức hương vị Trà Sữa & Cà Phê thơm ngon")
+    st.divider()
+
+    col_left, col_right = st.columns([1.2, 0.8])
+
+    # ================= CỘT TRÁI: CHỌN MÓN =================
+    with col_left:
+        st.subheader("📝 Thông tin đơn hàng")
+        
+        c_name, c_tier, c_type = st.columns([2, 1.2, 1])
+        with c_name:
+            customer_name = st.text_input("Tên khách hàng:", placeholder="Nhập tên khách...")
+        with c_tier:
+            cust_tier = st.selectbox("Thành viên:", ["Khách vãng lai", "VIP (-10%)", "HSSV (-5%)"])
+        with c_type:
+            service_type = st.selectbox("Hình thức:", ["Tại bàn", "Mang đi"])
+
+        st.subheader("🍵 Chọn món nước & Tùy chọn")
+
+        # Chọn nhóm sản phẩm
+        selected_category = st.radio(
+            "Danh mục món:", 
+            list(MENU_ITEMS.keys()), 
+            horizontal=True
+        )
+
+        category_dict = MENU_ITEMS[selected_category]
+
+        c_select, c_preview = st.columns([1.2, 1])
+
+        with c_select:
+            # Chọn món
+            selected_item_name = st.selectbox("Tên món:", list(category_dict.keys()))
+            item_info = category_dict[selected_item_name]
+            base_price = item_info["price"]
+
+            quantity = st.number_input("Số lượng:", min_value=1, value=1, step=1)
+
+            # Chọn Size, Đường, Đá
+            c_sz, c_sg, c_ic = st.columns(3)
+            with c_sz:
+                selected_size = st.selectbox("Size:", list(SIZE_OPTIONS.keys()))
+            with c_sg:
+                selected_sugar = st.selectbox("Đường:", SUGAR_LEVELS)
+            with c_ic:
+                selected_ice = st.selectbox("Đá:", ICE_LEVELS)
+
+            selected_toppings = st.multiselect("Topping:", options=list(TOPPING_OPTIONS.keys()))
+
+        # HIỂN THỊ HÌNH TỰ ĐỘNG
+        with c_preview:
+            st.write("**Hình minh họa:**")
+            st
