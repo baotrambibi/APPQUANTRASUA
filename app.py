@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import random
+import streamlit.components.v1 as components
 
 # ---------------------------------------------------------
 # 1. CẤU HÌNH TRANG
@@ -244,7 +245,13 @@ if nav_choice == "🛒 Order Bán Hàng":
 
             quantity = st.number_input("Số lượng:", min_value=1, value=1, step=1)
 
-            # BÁNH NGỌT TỰ ĐỘNG ẨN SIZE/ĐƯỜNG/ĐÁ/TOPPING
+            # Khởi tạo mặc định cho tất cả trường hợp
+            selected_size = "S (Vừa)"
+            selected_sugar = "-"
+            selected_ice = "-"
+            selected_toppings = []
+
+            # Nếu là món nước thì hiển thị tùy chọn
             if "BÁNH" not in selected_category:
                 c_sz, c_sg, c_ic = st.columns(3)
                 with c_sz:
@@ -255,11 +262,6 @@ if nav_choice == "🛒 Order Bán Hàng":
                     selected_ice = st.selectbox("Đá:", ICE_LEVELS)
 
                 selected_toppings = st.multiselect("Topping:", options=list(TOPPING_OPTIONS.keys()))
-            else:
-                selected_size = "S (Vừa)"
-                selected_sugar = "-"
-                selected_ice = "-"
-                selected_toppings = []
 
         with c_preview:
             st.write("**Hình ảnh minh họa:**")
@@ -315,17 +317,48 @@ if nav_choice == "🛒 Order Bán Hàng":
 
             base_discount = 10 if "VIP" in cust_tier else (5 if "HSSV" in cust_tier else 0)
             
-            # Khung Mini Game Vòng Quay
-            c_disc, c_spin = st.columns([1.2, 1])
-            with c_disc:
-                discount = st.number_input("Giảm giá tổng (%):", min_value=0, max_value=100, value=base_discount + st.session_state.lucky_discount, step=5)
-            with c_spin:
-                if st.button("🎡 VÒNG QUAY MAY MẮN"):
+            discount = st.number_input(
+                "Giảm giá tổng (%):", 
+                min_value=0, 
+                max_value=100, 
+                value=base_discount + st.session_state.lucky_discount, 
+                step=5
+            )
+
+            # VÒNG QUAY MAY MẮN TRỰC QUAN HẤP DẪN
+            with st.expander("🎡 VÒNG QUAY MAY MẮN (Bấm để thử vận may!)", expanded=False):
+                if st.button("💥 QUAY NGAY KHUYẾN MÃI", type="primary", use_container_width=True):
                     rewards = [5, 10, 15, 20]
                     won_discount = random.choice(rewards)
                     st.session_state.lucky_discount = won_discount
-                    st.session_state.spin_reward_text = f"🎉 Trúng voucher giảm thêm {won_discount}%!"
+                    st.session_state.spin_reward_text = f"🎉 Chúc mừng! Bạn trúng voucher giảm **{won_discount}%**!"
                     st.rerun()
+
+                # Giao diện đồ họa vòng quay
+                wheel_html = """
+                <div style="text-align: center; margin-top: 10px;">
+                    <div style="
+                        display: inline-block;
+                        width: 140px; height: 140px;
+                        border-radius: 50%;
+                        border: 6px solid #FFB300;
+                        background: conic-gradient(#FF6F00 0deg 90deg, #FFA000 90deg 180deg, #FFC107 180deg 270deg, #FFD54F 270deg 360deg);
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                        position: relative;
+                        animation: spin 3s ease-out;
+                    ">
+                        <div style="
+                            position: absolute; top: 50%; left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 35px; height: 35px;
+                            background: white; border-radius: 50%;
+                            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+                            font-weight: bold; line-height: 35px; color: #333;
+                        ">🎁</div>
+                    </div>
+                </div>
+                """
+                st.markdown(wheel_html, unsafe_allow_html=True)
 
             if st.session_state.spin_reward_text:
                 st.success(st.session_state.spin_reward_text)
