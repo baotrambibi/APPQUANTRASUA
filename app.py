@@ -1,78 +1,85 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import random
 
 # ---------------------------------------------------------
 # 1. CẤU HÌNH TRANG
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Bi Coffee & Tea - POS System",
+    page_title="Bi Coffee & Tea - Smart POS System",
     page_icon="☕",
     layout="wide"
 )
 
 # ---------------------------------------------------------
-# 2. MENU SẢN PHẨM KÈM LINK ẢNH TRỰC TUYẾN
+# 2. MENU SẢN PHẨM & DỮ LIỆU
 # ---------------------------------------------------------
 MENU_ITEMS = {
     "☕ CÀ PHÊ": {
         "Cà Phê Đen Đá": {
             "price": 25000,
-            "img": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500"
+            "img": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500",
+            "tags": ["mệt mỏi", "đậm vị", "tỉnh táo"]
         },
         "Cà Phê Sữa Đá": {
             "price": 28000,
-            "img": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=500"
+            "img": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=500",
+            "tags": ["ngọt ngào", "tỉnh táo"]
         },
         "Bạc Xỉu": {
             "price": 32000,
-            "img": "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500"
+            "img": "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500",
+            "tags": ["béo béo", "nhẹ nhàng"]
         },
         "Matcha Espresso Latte": {
             "price": 42000,
-            "img": "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=500"
+            "img": "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=500",
+            "tags": ["độc lạ", "đậm vị"]
         }
     },
     "🧋 TRÀ & TRÀ SỮA": {
         "Matcha Latte": {
             "price": 40000,
-            "img": "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=500"
+            "img": "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=500",
+            "tags": ["béo béo", "thư giãn"]
         },
         "Trà Sữa Trân Châu Đường Đen": {
             "price": 35000,
-            "img": "https://images.unsplash.com/photo-1558857563-b371033873b8?w=500"
+            "img": "https://images.unsplash.com/photo-1558857563-b371033873b8?w=500",
+            "tags": ["ngọt ngào", "vui vẻ"]
         },
         "Trà Sữa Thái Xanh": {
             "price": 32000,
-            "img": "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500"
+            "img": "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500",
+            "tags": ["sảng khoái", "thanh mát"]
         },
         "Trà Đào Cam Sả": {
             "price": 35000,
-            "img": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500"
+            "img": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500",
+            "tags": ["nắng nóng", "thanh mát", "sảng khoái"]
         },
         "Trà Dâu Tằm": {
             "price": 32000,
-            "img": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500"
+            "img": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500",
+            "tags": ["thanh mát", "chua ngọt"]
         }
     },
     "🍰 BÁNH & NGỌT": {
         "Bánh Croissant Bơ Tỏi": {
             "price": 29000,
-            "img": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500"
+            "img": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500",
+            "tags": ["ăn nhẹ", "thơm bơ"]
         },
         "Bánh Tiramisu": {
             "price": 35000,
-            "img": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=500"
+            "img": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=500",
+            "tags": ["ngọt ngào", "mềm mịn"]
         }
     }
 }
 
-SIZE_OPTIONS = {
-    "S (Vừa)": 0,
-    "M (Lớn)": 5000,
-    "L (Đặc biệt)": 10000
-}
-
+SIZE_OPTIONS = {"S (Vừa)": 0, "M (Lớn)": 5000, "L (Đặc biệt)": 10000}
 TOPPING_OPTIONS = {
     "Trân châu đen": 5000,
     "Trân châu trắng": 7000,
@@ -80,17 +87,20 @@ TOPPING_OPTIONS = {
     "Pudding trứng": 8000,
     "Kem Cheese": 10000
 }
-
 SUGAR_LEVELS = ["100% (Bình thường)", "70%", "50%", "30%", "0% (Không đường)"]
 ICE_LEVELS = ["100% (Bình thường)", "70%", "50%", "30%", "0% (Không đá)"]
 
-# Khởi tạo session state
+# Khởi tạo Session State
 if "cart" not in st.session_state:
     st.session_state.cart = []
 if "invoice_paid" not in st.session_state:
     st.session_state.invoice_paid = False
 if "order_history" not in st.session_state:
     st.session_state.order_history = []
+if "lucky_discount" not in st.session_state:
+    st.session_state.lucky_discount = 0
+if "spin_reward_text" not in st.session_state:
+    st.session_state.spin_reward_text = ""
 
 # ---------------------------------------------------------
 # HÀM XUẤT HÓA ĐƠN DẠNG TEXT (.TXT)
@@ -129,13 +139,14 @@ def create_txt_invoice(customer_name, service_type, cart, total_amount, discount
 # ---------------------------------------------------------
 with st.sidebar:
     st.title("☕ BI COFFEE & TEA")
-    st.caption("Hệ thống POS Quản Lý Bán Hàng")
+    st.caption("Smart POS System v2.0")
     st.divider()
 
     nav_choice = st.radio(
         "Chức năng:",
         [
             "🛒 Order Bán Hàng",
+            "🤖 AI Gợi Ý Món Nước",
             "👨‍🍳 Màn Hình Pha Chế",
             "📊 Doanh Thu & Lịch Sử"
         ]
@@ -146,7 +157,6 @@ with st.sidebar:
 # ---------------------------------------------------------
 if nav_choice == "🛒 Order Bán Hàng":
 
-    # ĐÃ BỌC STYLE CHUẨN XÁC, KHÔNG BỊ LỘ TEXT RA NGOÀI
     header_html = """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Montserrat:wght@400;500&display=swap');
@@ -204,6 +214,7 @@ if nav_choice == "🛒 Order Bán Hàng":
 
     col_left, col_right = st.columns([1.2, 0.8])
 
+    # ==================== CỘT TRÁI: CHỌN MÓN ====================
     with col_left:
         st.subheader("📝 Thông tin đơn hàng")
         
@@ -233,6 +244,7 @@ if nav_choice == "🛒 Order Bán Hàng":
 
             quantity = st.number_input("Số lượng:", min_value=1, value=1, step=1)
 
+            # BÁNH NGỌT TỰ ĐỘNG ẨN SIZE/ĐƯỜNG/ĐÁ/TOPPING
             if "BÁNH" not in selected_category:
                 c_sz, c_sg, c_ic = st.columns(3)
                 with c_sz:
@@ -254,156 +266,4 @@ if nav_choice == "🛒 Order Bán Hàng":
             st.image(item_info["img"], caption=f"{selected_item_name}", use_container_width=True)
 
         if "BÁNH" not in selected_category:
-            unit_price = base_price + SIZE_OPTIONS[selected_size] + sum(TOPPING_OPTIONS[t] for t in selected_toppings)
-        else:
-            unit_price = base_price
-
-        item_total = unit_price * quantity
-
-        st.info(f"💡 Đơn giá: **{unit_price:,} VNĐ** | Thành tiền: **{item_total:,} VNĐ**")
-
-        if st.button("➕ Thêm vào giỏ hàng", type="primary", use_container_width=True):
-            topping_str = ", ".join(selected_toppings) if selected_toppings else "Không"
-            item_data = {
-                "Tên món": selected_item_name,
-                "Size": selected_size.split()[0] if "BÁNH" not in selected_category else "-",
-                "Đường": selected_sugar.split()[0] if "BÁNH" not in selected_category else "-",
-                "Đá": selected_ice.split()[0] if "BÁNH" not in selected_category else "-",
-                "Topping": topping_str,
-                "Đơn giá": unit_price,
-                "Số lượng": quantity,
-                "Thành tiền": item_total
-            }
-            st.session_state.cart.append(item_data)
-            st.session_state.invoice_paid = False
-            st.toast(f"Đã thêm **{quantity}x {selected_item_name}**!", icon="✅")
-
-    with col_right:
-        st.subheader("🛒 Giỏ hàng của bạn")
-
-        if not st.session_state.cart:
-            st.warning("Giỏ hàng đang trống. Vui lòng chọn món ở cột bên trái.")
-        else:
-            df_cart = pd.DataFrame(st.session_state.cart)
-            st.dataframe(
-                df_cart[["Tên món", "Size", "Topping", "Số lượng", "Đơn giá", "Thành tiền"]],
-                use_container_width=True,
-                hide_index=True
-            )
-
-            if st.button("🗑️ Xóa tất cả món"):
-                st.session_state.cart = []
-                st.session_state.invoice_paid = False
-                st.rerun()
-
-            st.divider()
-
-            auto_discount = 0
-            if "VIP" in cust_tier:
-                auto_discount = 10
-            elif "HSSV" in cust_tier:
-                auto_discount = 5
-
-            total_price = df_cart["Thành tiền"].sum()
-            
-            c_dc, c_py = st.columns(2)
-            with c_dc:
-                discount = st.number_input("Giảm giá (%):", min_value=0, max_value=100, value=auto_discount, step=5)
-            with c_py:
-                pay_method = st.selectbox("Hình thức:", ["Tiền mặt 💵", "Chuyển khoản QR 💳", "Ví MoMo 📱"])
-
-            final_price = int(total_price * (1 - discount / 100))
-
-            st.write(f"### Tổng tiền món: **{total_price:,} VNĐ**")
-            st.write(f"## TỔNG THANH TOÁN: :red[{final_price:,} VNĐ]")
-
-            if st.button("💳 XÁC NHẬN THANH TOÁN", type="primary", use_container_width=True):
-                st.session_state.invoice_paid = True
-                order_info = {
-                    "time": datetime.now().strftime("%H:%M:%S - %d/%m/%Y"),
-                    "customer": customer_name if customer_name else "Khách vãng lai",
-                    "type": service_type,
-                    "items_count": len(st.session_state.cart),
-                    "total": final_price,
-                    "details": st.session_state.cart
-                }
-                st.session_state.order_history.append(order_info)
-                st.balloons()
-
-    if st.session_state.get("invoice_paid") and st.session_state.cart:
-        st.divider()
-        st.success("🎉 Thanh toán thành công! Dưới đây là chi tiết hóa đơn:")
-
-        c_inv, c_qr = st.columns([1.2, 0.8])
-        
-        with c_inv:
-            invoice_box = st.container(border=True)
-            with invoice_box:
-                st.markdown("<h2 style='text-align: center; color: #4A2E19;'>☕ HÓA ĐƠN BÁN HÀNG - BI COFFEE & TEA</h2>", unsafe_allow_html=True)
-                st.write(f"**Thời gian:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-                st.write(f"**Khách hàng:** {customer_name if customer_name else 'Khách vãng lai'} ({service_type})")
-                
-                st.table(pd.DataFrame(st.session_state.cart)[["Tên món", "Size", "Đường", "Đá", "Topping", "Số lượng", "Thành tiền"]])
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.write(f"**Tổng tiền món:** {total_price:,} VNĐ")
-                    st.write(f"**Giảm giá:** {discount}%")
-                with c2:
-                    st.markdown(f"### TỔNG CỦA BẠN: <span style='color:red'>{final_price:,} VNĐ</span>", unsafe_allow_html=True)
-
-        with c_qr:
-            if "Chuyển khoản" in pay_method or "MoMo" in pay_method:
-                st.markdown("#### 📱 Mã QR Thanh Toán")
-                qr_url = f"https://img.vietqr.io/image/MB-0123456789-compact2.png?amount={final_price}&addInfo=BiCoffee%20Thanh%20Toan"
-                st.image(qr_url, caption="Mở App Ngân hàng / MoMo để quét", use_container_width=True)
-
-        txt_data = create_txt_invoice(customer_name, service_type, st.session_state.cart, total_price, discount, final_price)
-        
-        col_dl1, col_dl2 = st.columns(2)
-        with col_dl1:
-            st.download_button(
-                label="📥 Tải hóa đơn (.TXT)",
-                data=txt_data,
-                file_name=f"HoaDon_BiCoffee_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                mime="text/plain",
-                use_container_width=True,
-                type="primary"
-            )
-        with col_dl2:
-            if st.button("🔄 Tạo đơn hàng mới", use_container_width=True):
-                st.session_state.cart = []
-                st.session_state.invoice_paid = False
-                st.rerun()
-
-elif nav_choice == "👨‍🍳 Màn Hình Pha Chế":
-    st.title("👨‍🍳 Màn Hình Pha Chế (Barista)")
-    st.divider()
-
-    if not st.session_state.order_history:
-        st.info("Chưa có đơn hàng nào cần làm.")
-    else:
-        for idx, order in enumerate(reversed(st.session_state.order_history), 1):
-            with st.expander(f"📦 Đơn #{len(st.session_state.order_history)-idx+1} - {order['customer']} ({order['type']}) - Lúc {order['time']}", expanded=True):
-                for item in order["details"]:
-                    st.write(f"- **{item['Số lượng']}x {item['Tên món']}** (Size: {item['Size']} | Đường: {item['Đường']} | Đá: {item['Đá']} | Topping: {item['Topping']})")
-                if st.button(f"✅ Hoàn thành đơn #{len(st.session_state.order_history)-idx+1}", key=f"kds_{idx}"):
-                    st.toast("Đã chuyển đơn xong!", icon="☕")
-
-elif nav_choice == "📊 Doanh Thu & Lịch Sử":
-    st.title("📊 Doanh Thu & Lịch Sử Đơn Hàng")
-    st.divider()
-
-    if not st.session_state.order_history:
-        st.warning("Chưa có lịch sử bán hàng.")
-    else:
-        total_rev = sum(o["total"] for o in st.session_state.order_history)
-        total_orders = len(st.session_state.order_history)
-
-        m1, m2 = st.columns(2)
-        m1.metric("Tổng Doanh Thu", f"{total_rev:,} VNĐ")
-        m2.metric("Tổng Số Đơn Hàng", f"{total_orders} Đơn")
-
-        st.divider()
-        df_history = pd.DataFrame(st.session_state.order_history)
-        st.dataframe(df_history[["time", "customer", "type", "items_count", "total"]], use_container_width=True)
+            unit_price = base_price + SIZE_
