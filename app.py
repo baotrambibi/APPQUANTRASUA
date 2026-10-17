@@ -110,7 +110,7 @@ def create_txt_invoice(customer_name, service_type, cart, total_amount, discount
         content += f"{idx}. {item['Tên món']}"
         if item['Size'] != "-":
             content += f" ({item['Size']})"
-        content += f"\n"
+        content += "\n"
         if item['Đường'] != "-":
             content += f"   - Đường: {item['Đường']} | Đá: {item['Đá']}\n"
         if item['Topping'] != "Không":
@@ -175,7 +175,6 @@ if nav_choice == "🛒 Order Bán Hàng":
 
         category_dict = MENU_ITEMS[selected_category]
 
-        # Chia 2 cột: Cột chọn chi tiết món & Cột xem hình ảnh minh họa
         c_select, c_preview = st.columns([1.2, 1])
 
         with c_select:
@@ -185,7 +184,7 @@ if nav_choice == "🛒 Order Bán Hàng":
 
             quantity = st.number_input("Số lượng:", min_value=1, value=1, step=1)
 
-            # KIỂM TRA: NẾU KHÔNG PHẢI LÀ BÁNH NGỌT THÌ HIỆN SIZE, ĐƯỜNG, ĐÁ, TOPPING
+            # BÁNH NGỌT TỰ ĐỘNG ẨN SIZE/ĐƯỜNG/ĐÁ/TOPPING
             if "BÁNH" not in selected_category:
                 c_sz, c_sg, c_ic = st.columns(3)
                 with c_sz:
@@ -197,19 +196,18 @@ if nav_choice == "🛒 Order Bán Hàng":
 
                 selected_toppings = st.multiselect("Topping:", options=list(TOPPING_OPTIONS.keys()))
             else:
-                # Nếu là bánh ngọt thì gán giá trị mặc định (không tính size, đường, đá, topping)
                 selected_size = "S (Vừa)"
                 selected_sugar = "-"
                 selected_ice = "-"
                 selected_toppings = []
                 st.info("🍰 Bánh ngọt dùng nguyên vị, không cần chọn Size/Đường/Đá.")
 
-        # HIỂN THỊ HÌNH TỰ ĐỘNG THAY ĐỔI KHI BẤM CHỌN MÓN
+        # HIỂN THỊ HÌNH MÓN ĐƯỢC CHỌN
         with c_preview:
             st.write("**Hình ảnh minh họa:**")
             st.image(item_info["img"], caption=f"{selected_item_name}", use_container_width=True)
 
-        # Tính đơn giá và thành tiền
+        # TÍNH TỔNG TIỀN MÓN
         if "BÁNH" not in selected_category:
             unit_price = base_price + SIZE_OPTIONS[selected_size] + sum(TOPPING_OPTIONS[t] for t in selected_toppings)
         else:
@@ -256,7 +254,6 @@ if nav_choice == "🛒 Order Bán Hàng":
 
             st.divider()
 
-            # Tự động giảm giá theo hạng thành viên
             auto_discount = 0
             if "VIP" in cust_tier:
                 auto_discount = 10
@@ -278,4 +275,99 @@ if nav_choice == "🛒 Order Bán Hàng":
 
             if st.button("💳 XÁC NHẬN THANH TOÁN", type="primary", use_container_width=True):
                 st.session_state.invoice_paid = True
-                st.session_state.order_history.append({
+                order_info = {
+                    "time": datetime.now().strftime("%H:%M:%S - %d/%m/%Y"),
+                    "customer": customer_name if customer_name else "Khách vãng lai",
+                    "type": service_type,
+                    "items_count": len(st.session_state.cart),
+                    "total": final_price,
+                    "details": st.session_state.cart
+                }
+                st.session_state.order_history.append(order_info)
+                st.balloons()
+
+    # ==================== HÓA ĐƠN & NÚT IN/TẢI FILE .TXT ====================
+    if st.session_state.get("invoice_paid") and st.session_state.cart:
+        st.divider()
+        st.success("🎉 Thanh toán thành công! Dưới đây là chi tiết hóa đơn:")
+
+        c_inv, c_qr = st.columns([1.2, 0.8])
+        
+        with c_inv:
+            invoice_box = st.container(border=True)
+            with invoice_box:
+                st.markdown("<h2 style='text-align: center; color: #4A2E19;'>☕ HÓA ĐƠN BÁN HÀNG - BI COFFEE & TEA</h2>", unsafe_allow_html=True)
+                st.write(f"**Thời gian:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+                st.write(f"**Khách hàng:** {customer_name if customer_name else 'Khách vãng lai'} ({service_type})")
+                
+                st.table(pd.DataFrame(st.session_state.cart)[["Tên món", "Size", "Đường", "Đá", "Topping", "Số lượng", "Thành tiền"]])
+                
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.write(f"**Tổng tiền món:** {total_price:,} VNĐ")
+                    st.write(f"**Giảm giá:** {discount}%")
+                with c2:
+                    st.markdown(f"### TỔNG CỦA BẠN: <span style='color:red'>{final_price:,} VNĐ</span>", unsafe_allow_html=True)
+
+        with c_qr:
+            if "Chuyển khoản" in pay_method or "MoMo" in pay_method:
+                st.markdown("#### 📱 Mã QR Thanh Toán")
+                qr_url = f"https://img.vietqr.io/image/MB-0123456789-compact2.png?amount={final_price}&addInfo=BiCoffee%20Thanh%20Toan"
+                st.image(qr_url, caption="Mở App Ngân hàng / MoMo để quét", use_container_width=True)
+
+        # Chuẩn bị file tải hóa đơn .TXT
+        txt_data = create_txt_invoice(customer_name, service_type, st.session_state.cart, total_price, discount, final_price)
+        
+        col_dl1, col_dl2 = st.columns(2)
+        with col_dl1:
+            st.download_button(
+                label="📥 Tải hóa đơn (.TXT)",
+                data=txt_data,
+                file_name=f"HoaDon_BiCoffee_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                use_container_width=True,
+                type="primary"
+            )
+        with col_dl2:
+            if st.button("🔄 Tạo đơn hàng mới", use_container_width=True):
+                st.session_state.cart = []
+                st.session_state.invoice_paid = False
+                st.rerun()
+
+# ---------------------------------------------------------
+# 5. CHỨC NĂNG 2: MÀN HÌNH PHA CHẾ BARISTA
+# ---------------------------------------------------------
+elif nav_choice == "👨‍🍳 Màn Hình Pha Chế":
+    st.title("👨‍🍳 Màn Hình Pha Chế (Barista)")
+    st.divider()
+
+    if not st.session_state.order_history:
+        st.info("Chưa có đơn hàng nào cần làm.")
+    else:
+        for idx, order in enumerate(reversed(st.session_state.order_history), 1):
+            with st.expander(f"📦 Đơn #{len(st.session_state.order_history)-idx+1} - {order['customer']} ({order['type']}) - Lúc {order['time']}", expanded=True):
+                for item in order["details"]:
+                    st.write(f"- **{item['Số lượng']}x {item['Tên món']}** (Size: {item['Size']} | Đường: {item['Đường']} | Đá: {item['Đá']} | Topping: {item['Topping']})")
+                if st.button(f"✅ Hoàn thành đơn #{len(st.session_state.order_history)-idx+1}", key=f"kds_{idx}"):
+                    st.toast("Đã chuyển đơn xong!", icon="☕")
+
+# ---------------------------------------------------------
+# 6. CHỨC NĂNG 3: BÁO CÁO DOANH THU
+# ---------------------------------------------------------
+elif nav_choice == "📊 Doanh Thu & Lịch Sử":
+    st.title("📊 Doanh Thu & Lịch Sử Đơn Hàng")
+    st.divider()
+
+    if not st.session_state.order_history:
+        st.warning("Chưa có lịch sử bán hàng.")
+    else:
+        total_rev = sum(o["total"] for o in st.session_state.order_history)
+        total_orders = len(st.session_state.order_history)
+
+        m1, m2 = st.columns(2)
+        m1.metric("Tổng Doanh Thu", f"{total_rev:,} VNĐ")
+        m2.metric("Tổng Số Đơn Hàng", f"{total_orders} Đơn")
+
+        st.divider()
+        df_history = pd.DataFrame(st.session_state.order_history)
+        st.dataframe(df_history[["time", "customer", "type", "items_count", "total"]], use_container_width=True)
