@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Style CSS tùy chỉnh
+# Custom CSS
 st.markdown("""
 <style>
     .main {
@@ -149,8 +149,4 @@ if nav_choice == "🛒 Order Bán Hàng & POS":
     st.markdown("""
         <div class="header-banner">
             <h1>☕ BI COFFEE & TEA 🌿</h1>
-            <p>"Thưởng thức vị trà ngọt ngào & Cà phê đậm đà"</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    col_left, col_right = st.columns([1.15, 0.85], gap
+            <p>"Thưởng thức
