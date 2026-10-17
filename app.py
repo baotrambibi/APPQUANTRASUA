@@ -200,7 +200,6 @@ if nav_choice == "🛒 Order Bán Hàng":
                 selected_sugar = "-"
                 selected_ice = "-"
                 selected_toppings = []
-                st.info("🍰 Bánh ngọt dùng nguyên vị, không cần chọn Size/Đường/Đá.")
 
         # HIỂN THỊ HÌNH MÓN ĐƯỢC CHỌN
         with c_preview:
